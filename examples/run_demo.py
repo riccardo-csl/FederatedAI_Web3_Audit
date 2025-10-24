@@ -1,6 +1,8 @@
+import os
 from federated.training_orchestrator import run_federated
 
 if __name__ == "__main__":
-    print("Starting federated demo (1 round)…")
-    losses, accs = run_federated(rounds=10)
-    print("Done. Test accuracy after round 1:", accs[-1])
+    rounds = int(os.getenv("ROUNDS", "1"))
+    print(f"Starting federated demo ({rounds} round{'s' if rounds != 1 else ''})…")
+    losses, accs = run_federated(rounds=rounds)
+    print(f"Done. Test accuracy after round {rounds}:", accs[-1])

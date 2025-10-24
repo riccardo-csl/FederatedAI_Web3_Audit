@@ -1,0 +1,17 @@
+[profile.default]
+src = "src/smart_contracts"
+out = "out"
+libs = ["lib"]
+test = "tests/solidity"
+cache_path = "cache"
+solc_version = "0.8.26"
+evm_version = "cancun"
+optimizer = true
+optimizer_runs = 200
+remappings = [
+  "@openzeppelin/=lib/openzeppelin-contracts/",
+  "forge-std/=lib/forge-std/src/",
+]
+
+[rpc_endpoints]
+local = "http://127.0.0.1:7545"

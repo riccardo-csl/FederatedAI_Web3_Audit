@@ -2,7 +2,6 @@
 
 [![CI](https://github.com/riccardo-csl/FederatedAI_Web3_Audit/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/riccardo-csl/FederatedAI_Web3_Audit/actions/workflows/ci.yml)
 [![ABI Artifacts](https://github.com/riccardo-csl/FederatedAI_Web3_Audit/actions/workflows/abi-artifacts.yml/badge.svg?branch=main)](https://github.com/riccardo-csl/FederatedAI_Web3_Audit/actions/workflows/abi-artifacts.yml)
-[![Deploy (Testnet)](https://github.com/riccardo-csl/FederatedAI_Web3_Audit/actions/workflows/deploy-testnet.yml/badge.svg?branch=main)](https://github.com/riccardo-csl/FederatedAI_Web3_Audit/actions/workflows/deploy-testnet.yml)
 
 An auditable federated‑training reference that records on‑chain proofs for every round and peer participation. It stores only Keccak‑256 weight hashes and compact JSON metadata, never raw weights or data.
 
@@ -164,7 +163,7 @@ Python
 This repository ships with GitHub Actions for tests, artifacts, and manual deploys.
 - CI: Solidity and Python tests on every push/PR — see the CI badge above.
 - ABI artifacts: generates ABI JSONs on `main` and uploads them as artifacts.
-- Testnet deploy: manual workflow; configure `WEB3_HTTP_PROVIDER`, `AGGREGATOR_PRIVATE_KEY`, `CLIENT_PRIVATE_KEYS` in repo Secrets.
+- Testnet deploy: manual workflow; configure `WEB3_HTTP_PROVIDER`, `AGGREGATOR_PRIVATE_KEY`, `CLIENT_PRIVATE_KEYS` in repo Secrets. Trigger from Actions: https://github.com/riccardo-csl/FederatedAI_Web3_Audit/actions/workflows/deploy-testnet.yml
 
 ## License
 This project is licensed under the MIT License. See `LICENSE` for details.

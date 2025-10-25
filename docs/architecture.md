@@ -153,50 +153,38 @@ Web3Connector          -> Training Orchestrator: values for local equality check
 ```mermaid
 sequenceDiagram
     autonumber
-    participant P as Peer_i
+    participant Peer as Peer
     participant O as Orchestrator
     participant W as Web3Connector
     participant PC as FedPeerNFT
     participant AC as FedAggregatorNFT
-    participant CH as EVM_Chain
 
-    P->>O: Train 1 epoch, produce weights_i
-    O->>O: Compute hash h_i
-    O->>O: Evaluate accuracy acc_i
-    O->>O: FedAvg all weights to avg_weights
-    O->>O: Evaluate global accuracy
+    Peer->>O: Train 1 epoch -> weights_i
+    O->>O: hash(weights_i), eval(acc_i)
 
     O->>W: peer_get_last_round(i)
     W->>PC: getLastParticipatedRound()
     PC-->>W: lastRound
-    alt lastRound < targetRound
-        O->>W: mint_peer_round(targetRound, payload_i, i)
-        W->>PC: mint(roundNumber, payload)
+    alt not minted this round
+        O->>W: mint_peer_round(targetRound, payload_i)
+        W->>PC: mint(targetRound, payload_i)
         PC-->>W: tx receipt
-    else Peer already minted
+    else already minted
         O-->>O: skip (idempotence)
     end
 
-    O->>W: mint_aggregator_round(hash_avg, round_info)
-    W->>AC: mint(weightsHash, roundInfo)
+    O->>O: FedAvg(all weights) -> avg_weights, acc_global
+    O->>W: mint_aggregator_round(hash_avg, roundInfo)
+    W->>AC: mint(hash_avg, roundInfo)
     AC-->>W: tx receipt
 
-    O->>W: get_current_round()
-    W->>AC: getCurrentRound()
-    AC-->>W: currentRound
-
     O->>W: get_round_details(targetRound)
-    W->>AC: getRoundDetails(round)
+    W->>AC: getRoundDetails(targetRound)
     AC-->>W: details JSON
-
-    O->>W: get_round_weight(targetRound)
-    W->>AC: getRoundWeight(round)
-    AC-->>W: weightHash
-
     W-->>O: verification OK
 
-    Note over AC,PC: only owner can mint; federation can be ended
 ```
+
 
 ## Environment and Configuration
 `.env` (local Anvil example):

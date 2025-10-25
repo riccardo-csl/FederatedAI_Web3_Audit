@@ -153,16 +153,18 @@ Web3Connector          -> Training Orchestrator: values for local equality check
 ```mermaid
 sequenceDiagram
     autonumber
-    participant P as Peer (i)
+    participant P as Peer_i
     participant O as Orchestrator
     participant W as Web3Connector
     participant PC as FedPeerNFT
     participant AC as FedAggregatorNFT
-    participant CH as EVM Chain
+    participant CH as EVM_Chain
 
-    P->>O: Train 1 epoch -> weights_i
-    O->>O: hash(weights_i)=h_i; evaluate acc_i
-    O->>O: FedAvg(all weights) -> avg_weights; eval global
+    P->>O: Train 1 epoch, produce weights_i
+    O->>O: Compute hash h_i
+    O->>O: Evaluate accuracy acc_i
+    O->>O: FedAvg all weights to avg_weights
+    O->>O: Evaluate global accuracy
 
     O->>W: peer_get_last_round(i)
     W->>PC: getLastParticipatedRound()
@@ -188,12 +190,12 @@ sequenceDiagram
     AC-->>W: details JSON
 
     O->>W: get_round_weight(targetRound)
-    W->>AC: getRoundWeight(round) / getRoundHash(round)
-    AC-->>W: hash
+    W->>AC: getRoundWeight(round)
+    AC-->>W: weightHash
 
     W-->>O: verification OK
 
-    Note over AC,PC: Access control enforced (only owner can mint)
+    Note over AC,PC: only owner can mint; federation can be ended
 ```
 
 ## Environment and Configuration

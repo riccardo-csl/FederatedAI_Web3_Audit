@@ -55,4 +55,5 @@ jobs:
         env:
           PYTHONPATH: src
           TF_CPP_MIN_LOG_LEVEL: '2'
+          PYTEST_DISABLE_PLUGIN_AUTOLOAD: '1'
         run: make test-py

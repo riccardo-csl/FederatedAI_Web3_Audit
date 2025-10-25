@@ -1,8 +1,8 @@
 # Federated AI Web3 Auditing
 
-[![CI](https://github.com/riccardo-csl/FederatedAI_Web3_Audit/actions/workflows/ci.yml/badge.svg)](https://github.com/riccardo-csl/FederatedAI_Web3_Audit/actions/workflows/ci.yml)
-[![ABI Artifacts](https://github.com/riccardo-csl/FederatedAI_Web3_Audit/actions/workflows/abi-artifacts.yml/badge.svg)](https://github.com/riccardo-csl/FederatedAI_Web3_Audit/actions/workflows/abi-artifacts.yml)
-[![Deploy (Testnet)](https://github.com/riccardo-csl/FederatedAI_Web3_Audit/actions/workflows/deploy-testnet.yml/badge.svg)](https://github.com/riccardo-csl/FederatedAI_Web3_Audit/actions/workflows/deploy-testnet.yml)
+[![CI](https://github.com/riccardo-csl/FederatedAI_Web3_Audit/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/riccardo-csl/FederatedAI_Web3_Audit/actions/workflows/ci.yml)
+[![ABI Artifacts](https://github.com/riccardo-csl/FederatedAI_Web3_Audit/actions/workflows/abi-artifacts.yml/badge.svg?branch=main)](https://github.com/riccardo-csl/FederatedAI_Web3_Audit/actions/workflows/abi-artifacts.yml)
+[![Deploy (Testnet)](https://github.com/riccardo-csl/FederatedAI_Web3_Audit/actions/workflows/deploy-testnet.yml/badge.svg?branch=main)](https://github.com/riccardo-csl/FederatedAI_Web3_Audit/actions/workflows/deploy-testnet.yml)
 
 An auditable federated‑training reference that records on‑chain proofs for every round and peer participation. It stores only Keccak‑256 weight hashes and compact JSON metadata, never raw weights or data.
 

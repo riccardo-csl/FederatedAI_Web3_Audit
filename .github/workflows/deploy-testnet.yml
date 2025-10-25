@@ -42,21 +42,20 @@ jobs:
 
       - name: Build contracts and ABI
         run: |
-          make build
-          make abi
+          make build FORGE=forge
+          make abi FORGE=forge
 
       - name: Deploy Aggregator
         env:
           RPC_URL: ${{ secrets.WEB3_HTTP_PROVIDER }}
-        run: make deploy-agg MODEL_HASH="${{ inputs.model_hash }}"
+        run: make deploy-agg MODEL_HASH="${{ inputs.model_hash }}" FORGE=forge CAST=cast
 
       - name: Deploy Peers
         env:
           RPC_URL: ${{ secrets.WEB3_HTTP_PROVIDER }}
-        run: make deploy-peers
+        run: make deploy-peers FORGE=forge CAST=cast
 
       - name: Status
         env:
           RPC_URL: ${{ secrets.WEB3_HTTP_PROVIDER }}
-        run: make status
-
+        run: make status FORGE=forge CAST=cast

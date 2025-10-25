@@ -26,10 +26,10 @@ jobs:
           version: nightly
 
       - name: Build contracts
-        run: make build
+        run: make build FORGE=forge
 
       - name: Run Solidity tests
-        run: make test-sol
+        run: make test-sol FORGE=forge
 
   python:
     name: Python (tests)
@@ -56,4 +56,3 @@ jobs:
           PYTHONPATH: src
           TF_CPP_MIN_LOG_LEVEL: '2'
         run: make test-py
-

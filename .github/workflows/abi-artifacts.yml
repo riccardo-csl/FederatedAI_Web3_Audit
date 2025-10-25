@@ -21,6 +21,14 @@ jobs:
         with:
           version: stable
 
+      - name: Cache Solidity libs
+        uses: actions/cache@v4
+        with:
+          path: lib
+          key: lib-${{ runner.os }}-${{ hashFiles('foundry.toml') }}
+          restore-keys: |
+            lib-${{ runner.os }}-
+
       - name: Setup git user (for forge install)
         run: |
           git config user.name "github-actions[bot]"

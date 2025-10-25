@@ -45,7 +45,7 @@ Design principles that shaped the project:
   - `src/federated/blockchain_connector.py`: Web3 reads/writes to Aggregator/Peer contracts.
   - `src/federated/model_manager.py`, `src/federated/utils.py`, `src/federated/data_handler.py`: model, hashing, data utils.
 
-For a deeper dive, see: `docs/architecture.md`, `docs/fl_overview.md`, `docs/web3_auditing.md`.
+For a deeper dive, see: `docs/architecture.md`, `docs/targets.md`, `docs/verification.md`.
 
 ## Repository Layout
 - `src/smart_contracts/` — Solidity contracts (Aggregator and Peer)
@@ -127,14 +127,6 @@ make verify-agg-hash ROUND_NUMBER=1 WEIGHTS=weights_round1.npz [KEYS_ORDER=order
 make verify-peer-hash PEER_INDEX=0 ROUND_NUMBER=1 WEIGHTS=model_r1.h5
 ```
 See `docs/targets.md` for options and variations.
-
-## Troubleshooting (Quick)
-- RPC unreachable: ensure Anvil is running and `RPC_URL`/`WEB3_HTTP_PROVIDER` match (`make anvil-start`, then `make status`).
-- Insufficient funds: top up EOA balances on Anvil (`make fund-accounts`) or use a testnet faucet.
-- JSON quoting in shell: wrap JSON in single quotes, e.g. `ROUND_INFO='{"round_id":1,...}'`.
-- ABI mismatch: regenerate with `make abi` after changing contracts.
-- Hash mismatch: confirm dtype/ordering. Use `tools/weights_hash.py` and ensure float32, C-order, deterministic layer ordering.
-- Foundry not in PATH: install Foundry or set `FOUNDRY` path; verify with `forge --version`.
 
 ## Troubleshooting (top 3)
 - RPC connectivity: ensure Anvil is running and `RPC_URL`/`WEB3_HTTP_PROVIDER` match. See `docs/targets.md` → status.

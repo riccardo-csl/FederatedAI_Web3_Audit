@@ -21,9 +21,14 @@ jobs:
         with:
           version: stable
 
+      - name: Setup git user (for forge install)
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
       - name: Install Solidity dependencies
         run: |
-          forge install openzeppelin/openzeppelin-contracts@v5.4.0 foundry-rs/forge-std@v1.9.7 --no-git --no-commit
+          forge install openzeppelin/openzeppelin-contracts@v5.4.0 foundry-rs/forge-std@v1.9.7
 
       - name: Generate ABI
         run: make abi FORGE=forge

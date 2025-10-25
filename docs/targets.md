@@ -1,12 +1,24 @@
 # Makefile Targets – Usage Guide
 
-This document describes how to use every Makefile target in this repo, with required variables and examples. By default, Make runs in quiet mode; add `V=1` for verbose output.
+This document explains how to run the provided Make targets to build, deploy, interact, and verify on‑chain artifacts. Use quiet mode by default or add `V=1` for verbose output. Recipes below give copy‑paste starting points; the full reference follows.
 
 - Quiet: `make <target>`
 - Verbose: `make V=1 <target>`
 - Default config variables: `ENV_FILE=.env`, `HOST=127.0.0.1`, `PORT=7545`, `RPC_URL=http://127.0.0.1:7545`
 
 Note: Many targets expect keys/addresses in `$(ENV_FILE)`.
+
+## Top 5 recipes
+- Reset local network (Anvil), build, deploy, fund, and regenerate ABIs:
+  - `make reset`
+- Run a 1‑round federated demo and write proofs on‑chain:
+  - `make demo ROUNDS=1`
+- Show RPC and contract status (round, status, owner, hashes):
+  - `make status`
+- Verify aggregator round hash vs local weights:
+  - `make verify-agg-hash ROUND_NUMBER=1 WEIGHTS=weights_round1.npz [KEYS_ORDER=order.txt]`
+- Verify a peer payload (`weight_hash`) vs local weights:
+  - `make verify-peer-hash PEER_INDEX=0 ROUND_NUMBER=1 WEIGHTS=model_r1.h5`
 
 ## anvil-start
 - Purpose: Start an Anvil node in background and wait until the RPC responds.
@@ -133,6 +145,11 @@ Note: Many targets expect keys/addresses in `$(ENV_FILE)`.
 ## clean-artifacts
 - Purpose: Remove Foundry build artifacts and broadcast traces.
 - Usage: `make clean-artifacts`
+
+**Environment variables (used by targets)**
+- `ENV_FILE` (default `.env`), `RPC_URL`, `HOST`, `PORT`
+- `AGGREGATOR_PRIVATE_KEY`, `CLIENT_PRIVATE_KEYS`
+- `AGGREGATOR_CONTRACT_ADDRESS`, `CLIENT_CONTRACT_ADDRESSES`
 
 ## Troubleshooting and Tips
 - JSON quoting: when passing JSON on the shell (e.g., `ROUND_INFO`), wrap the value in single quotes to avoid escaping issues.

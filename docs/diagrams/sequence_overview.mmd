@@ -1,0 +1,31 @@
+sequenceDiagram
+    autonumber
+    participant Peer as Peer
+    participant O as Orchestrator
+    participant W as Web3Connector
+    participant PC as FedPeerNFT
+    participant AC as FedAggregatorNFT
+
+    Peer->>O: Train 1 epoch -> weights_i
+    O->>O: hash(weights_i), eval(acc_i)
+
+    O->>W: peer_get_last_round(i)
+    W->>PC: getLastParticipatedRound()
+    PC-->>W: lastRound
+    alt not minted this round
+        O->>W: mint_peer_round(targetRound, payload_i)
+        W->>PC: mint(targetRound, payload_i)
+        PC-->>W: tx receipt
+    else already minted
+        O-->>O: skip (idempotence)
+    end
+
+    O->>O: FedAvg(all weights) -> avg_weights, acc_global
+    O->>W: mint_aggregator_round(hash_avg, roundInfo)
+    W->>AC: mint(hash_avg, roundInfo)
+    AC-->>W: tx receipt
+
+    O->>W: get_round_details(targetRound)
+    W->>AC: getRoundDetails(targetRound)
+    AC-->>W: details JSON
+    W-->>O: verification OK

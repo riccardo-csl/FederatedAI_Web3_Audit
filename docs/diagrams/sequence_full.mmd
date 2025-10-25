@@ -1,0 +1,107 @@
+sequenceDiagram
+    autonumber
+
+    %% === Actors ===
+    participant O as Orchestrator
+    participant W as Web3Connector (Python)
+    participant PC as FedPeerNFT
+    participant AC as FedAggregatorNFT
+    participant CH as EVM Chain
+    participant P as Peer_i
+
+    %% === Init (env + connection) ===
+    O->>W: init()
+    activate W
+    W->>W: load env and ABIs
+    W->>W: create Web3 provider
+    Note right of W: connection established
+    W-->>O: ready
+    deactivate W
+
+    %% === Phase 1: training + peer mint (loop over peers) ===
+    loop For each peer i
+        P->>P: Train 1 epoch -> weights_i
+        P-->>O: submit weights_i and meta_i
+        O->>O: compute h_i = hash(weights_i)
+        O->>O: evaluate acc_i on weights_i
+        Note right of O: payload_i includes peer i, round, h_i, acc_i, timestamp, meta
+
+        %% --- Idempotent peer mint ---
+        O->>W: peer_get_last_round(i)
+        W->>PC: getLastParticipatedRound()
+        PC-->>W: lastRound_i
+        alt lastRound_i < targetRound
+            O->>W: mint_peer_round(targetRound, payload_i, i)
+            activate W
+            W->>W: prepare PC.mint(roundNumber, payload)
+            W->>W: build transaction
+            W->>W: sign transaction
+            W->>CH: send raw transaction
+            CH-->>W: tx hash
+            W->>CH: wait for receipt
+            CH-->>W: peer tx receipt
+            deactivate W
+            W-->>O: peer tx receipt
+        else already minted for i
+            O-->>O: skip due to idempotence
+        end
+
+        %% --- Optional retry/backoff for transient errors ---
+        opt retry on transient error
+            W--x PC: revert or timeout
+            O->>O: compute exponential backoff
+            O->>O: retries ≤ N
+            O->>W: mint_peer_round retry
+        end
+    end
+
+    %% === Phase 2: global aggregation + aggregator mint ===
+    O->>O: FedAvg over all weights_i
+    O->>O: compute hash_avg of avg weights
+    O->>O: evaluate acc_global
+
+    O->>W: mint_aggregator_round(hash_avg, roundInfo)
+    activate W
+    W->>W: prepare AC.mint(weightsHash, roundInfo)
+    W->>W: build transaction
+    W->>W: sign transaction
+    W->>CH: send raw transaction
+    CH-->>W: tx hash
+    W->>CH: wait for receipt
+    CH-->>W: aggregator tx receipt
+    deactivate W
+    W-->>O: aggregator tx receipt
+
+    %% === Phase 3: audit / verification (aggregator reads) ===
+    O->>W: get_current_round()
+    W->>AC: getCurrentRound()
+    AC-->>W: currentRound
+    W-->>O: currentRound
+
+    O->>W: get_round_details(targetRound)
+    W->>AC: getRoundDetails(targetRound)
+    AC-->>W: details JSON
+    W-->>O: details JSON
+
+    opt optional hash getter
+        O->>W: get_round_hash(targetRound)
+        W->>AC: getRoundHash(targetRound)
+        AC-->>W: weights hash for round
+        W-->>O: weights hash for round
+        O->>O: assert equals hash_avg
+    end
+
+    %% === Phase 4: optional peer-side reads ===
+    O->>W: peer_get_status(i) and peer_get_address(i)
+    W->>PC: getPeerStatus() and getPeerAddress()
+    PC-->>W: status_i and addr_i
+    W-->>O: status_i and addr_i
+
+    O->>W: peer_get_round_details(i, targetRound)
+    W->>PC: roundDetails(targetRound)
+    PC-->>W: peer details JSON
+    W-->>O: peer details JSON
+
+    %% === Final outcome ===
+    W-->>O: verification OK
+    Note over AC,PC: Access control: onlyOwner (aggregator) can mint

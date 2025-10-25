@@ -1,11 +1,16 @@
 # Federated AI Web3 Auditing
 
-Federated AI Web3 Auditing is a research‑driven reference implementation that brings auditability, provenance, and verifiability to Federated Learning (FL) by anchoring training round evidence on a blockchain. Each global round and each peer’s participation is recorded on‑chain as a minimal, immutable artifact: a Keccak‑256 hash of model weights and a compact JSON payload of metrics/metadata, minted as NFTs for traceability.
+An auditable federated‑training reference that records on‑chain proofs for every round and peer participation. It stores only Keccak‑256 weight hashes and compact JSON metadata, never raw weights or data.
 
-The project blends three layers:
-- Smart contracts (Solidity) that model the Aggregator and Peer audit trail as ERC‑721 NFTs.
-- A Python orchestration layer (TensorFlow + Web3.py) that trains, aggregates, hashes, and writes proof artifacts on‑chain.
-- A developer workflow (Foundry + Makefile) that automates local chain setup, deployment, interaction, and verification.
+How it works: the Python layer trains and aggregates, computes Keccak‑256 over flattened weights, and mints two NFTs per round (aggregator round and each peer’s participation). It then re‑reads on‑chain state to assert integrity.
+
+Quick tour
+- Architecture overview: `docs/architecture.md`
+- Make targets and recipes: `docs/targets.md`
+- Verification and diagnosis: `docs/verification.md`
+
+Diagram (overview)
+- See `docs/diagrams/sequence_overview.mmd` for a compact end‑to‑end sequence.
 
 ## Why and Story
 Modern ML systems increasingly operate under federated paradigms where data remains at the edge. While privacy improves, auditability often suffers: How do we prove which peers participated, which weights were used, what accuracy was achieved, and when? This repository emerged from the need to make FL processes tamper‑evident and reproducible for compliance, research validation, and cross‑organization trust.
@@ -98,7 +103,26 @@ make demo ROUNDS=1
 make status
 ```
 
-All Make targets are documented in `docs/target.md` (usage, variables, and examples).
+All Make targets are documented in `docs/targets.md` (usage, variables, and examples). See also `docs/verification.md` for audit flows.
+
+Try it quickly
+```bash
+# Start local chain, build, deploy aggregator/peers, fund accounts
+make reset
+
+# Run a 1‑round demo and write proofs on‑chain
+make demo ROUNDS=1
+
+# Show node, contracts, and round status
+make status
+
+# Verify an aggregator round hash against local weights
+make verify-agg-hash ROUND_NUMBER=1 WEIGHTS=weights_round1.npz [KEYS_ORDER=order.txt]
+
+# Verify a peer payload (weight_hash) against local weights
+make verify-peer-hash PEER_INDEX=0 ROUND_NUMBER=1 WEIGHTS=model_r1.h5
+```
+See `docs/targets.md` for options and variations.
 
 ## Troubleshooting (Quick)
 - RPC unreachable: ensure Anvil is running and `RPC_URL`/`WEB3_HTTP_PROVIDER` match (`make anvil-start`, then `make status`).
@@ -108,24 +132,10 @@ All Make targets are documented in `docs/target.md` (usage, variables, and examp
 - Hash mismatch: confirm dtype/ordering. Use `tools/weights_hash.py` and ensure float32, C-order, deterministic layer ordering.
 - Foundry not in PATH: install Foundry or set `FOUNDRY` path; verify with `forge --version`.
 
-## Verification Workflows
-This project makes it easy to verify that local weights correspond to the hashes recorded on‑chain.
-
-Supported weight files
-- `.npy`: a single array (vector or tensor; it will be flattened).
-- `.npz`: multiple arrays; default alphabetical key order or provide an order file (one key per line).
-- `.h5` / `.keras`: a full Keras model; weights are taken via `model.get_weights()` and concatenated in order.
-
-Commands
-```bash
-# Verify local weights against the Aggregator’s round hash
-make verify-agg-hash ROUND_NUMBER=3 WEIGHTS=weights_round3.npz [KEYS_ORDER=order.txt] [AGG_ADDR=0x...]
-
-# Verify local weights against a Peer’s payload (weight_hash) at a given round
-make verify-peer-hash PEER_INDEX=0 ROUND_NUMBER=2 WEIGHTS=model_r2.h5 [KEYS_ORDER=order.txt]
-```
-
-Under the hood, these use `tools/weights_hash.py` to compute Keccak‑256 over the flattened/concatenated weights and compare it to the on‑chain value.
+## Troubleshooting (top 3)
+- RPC connectivity: ensure Anvil is running and `RPC_URL`/`WEB3_HTTP_PROVIDER` match. See `docs/targets.md` → status.
+- Funding: top up EOA balances (`make fund-accounts` on Anvil, faucet on testnet). See `docs/targets.md`.
+- ABI mismatch: regenerate ABIs after contract changes (`make abi`). See `docs/verification.md` for audit checks.
 
 ## Development and Testing
 
@@ -148,11 +158,11 @@ Python
 - Determinism: training seeds are fixed in the orchestrator to improve reproducibility of examples.
 - The repository targets local development (Anvil). For public networks, harden key management and deployment procedures.
 
-## Roadmap (Indicative)
-- Optional Merkle schemes for per‑layer hash proofs.
-- Off‑chain storage bindings (IPFS/S3) with on‑chain CIDs.
-- Extended peer reputation and slashing hooks.
-- CLI utilities for richer round/peer analytics.
+## Docs map
+- `docs/architecture.md` — full architecture, storage and events
+- `docs/targets.md` — common recipes + full reference
+- `docs/verification.md` — verification golden path + decision tree
+- `docs/diagrams/sequence_full.mmd` — detailed sequence (idempotence, retries, receipts)
 
 ## License
 This project is licensed under the MIT License. See `LICENSE` for details.

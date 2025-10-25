@@ -1,7 +1,7 @@
 
 # System Architecture – Federated AI Web3 Auditing
 
-This document provides a rigorous, end‑to‑end description of the system architecture, the on‑chain and off‑chain components, and how the Python layer (training + Web3) interacts with the Solidity contracts. The goal is auditable federated learning: each global round and each peer’s participation are anchored on‑chain via deterministic weight hashes and compact, verifiable metadata.
+This document explains the purpose, components, and trust model for auditable federated training on‑chain. The system stores only Keccak‑256 weight hashes and compact JSON, so auditors can reproduce and validate proofs without exposing raw weights or data. Trust is minimized: correctness relies on deterministic hashing and public on‑chain state.
 
 ## Goals and Principles
 - End‑to‑end auditability for FL rounds and peer participations.
@@ -17,6 +17,33 @@ The architecture is composed of three layers:
 
 ## On‑Chain Layer (Solidity)
 Two ERC‑721 contracts keep an immutable audit trail as one NFT “per round,” with public state and mappings for introspection.
+
+Storage and getters (summary)
+
+| Contract | Key / Getter | Type | Meaning |
+| --- | --- | --- | --- |
+| Aggregator | modelHash | string | Initial model hash (baseline) |
+| Aggregator | modelWeightHash / getModelWeightHash() | string | Latest aggregated weight hash |
+| Aggregator | currentRound / getCurrentRound() | uint256 | Current global round (1‑based) |
+| Aggregator | federatedStatus | uint8 | 0=in progress, 1=ended |
+| Aggregator | aggregatorAddress / getAggregator() | address | Governance/owner address |
+| Aggregator | roundWeights[round] / getRoundWeight(round) | string | Aggregated weight hash per round |
+| Aggregator | roundDetails[round] / getRoundDetails(round) | string | Compact JSON metadata per round |
+| Aggregator | roundHashes[round] / getRoundHash(round) | string | Alias for compatibility |
+| Peer | peerAddress / getPeerAddress() | address | Peer owner address |
+| Peer | aggregatorAddress / getAggregatorAddress() | address | Linked aggregator address |
+| Peer | lastParticipatedRound / getLastParticipatedRound() | uint256 | Last round this peer joined |
+| Peer | peerStatus / getPeerStatus() | uint8 | 0=active, 1=inactive |
+| Peer | roundDetails[round] | string | Peer JSON payload per round |
+
+Events (summary)
+
+| Contract | Event | When | Fields | Purpose |
+| --- | --- | --- | --- | --- |
+| Aggregator | AggregatorRoundMinted | On round mint | roundNumber, modelWeightsHash, roundInfo | Anchor aggregated hash and metadata |
+| Aggregator | FederationEnded | On federation end | finalRound | Freeze further minting |
+| Peer | PeerMinted | On peer mint | roundNumber, payload | Anchor peer payload for that round |
+| Peer | PeerStatusChanged | On status change | status | Audit lifecycle (active/inactive) |
 
 ### FedAggregatorNFT
 - Role: global registry of federation rounds. The `Ownable` owner is the aggregator’s governance address.
@@ -69,7 +96,7 @@ The system stores no weights or raw data on‑chain. Instead it uses:
 - Keccak‑256 over concatenated weights: deterministic and verifiable off‑chain.
 - Compact JSON (no spaces) to enable exact string‑level comparisons against on‑chain storage.
 
-Primary formats:
+Primary formats (JSON examples use snake_case):
 - Peer payload (for `FedPeerNFT.mint`):
   - `{"peer_id": <int>, "round": <int>, "weight_hash": <hex>, "test_accuracy": <float>}`
 - Aggregator round details (for `FedAggregatorNFT.mint`):
@@ -125,80 +152,11 @@ Operational notes:
 5. On‑chain (aggregator): mints the round NFT, updates `modelWeightHash`, persists `roundDetails`, increments `currentRound`.
 6. Off‑chain: verifies the on‑chain state matches local hashes and JSON; logs the outcome.
 
-Ending the federation:
-- When appropriate, the aggregator calls `endFederation()` to block further rounds.
+Diagram
+- For the full sequence (including idempotence and retries), see `docs/diagrams/sequence_full.mmd`.
 
-## Sequence Diagram (Single Round)
-```text
-Participants:
-  Peer[i] | Training Orchestrator | Web3Connector | FedPeerNFT[i] | FedAggregatorNFT | EVM/Chain
-
-Peer[i]                -> Training Orchestrator : Local training (1 epoch) produces weights_i
-Training Orchestrator  -> Training Orchestrator : hash(weights_i)=h_i; evaluate -> acc_i
-... repeat for all peers ...
-Training Orchestrator  -> Training Orchestrator : FedAvg(weights_1..N) -> avg_weights; evaluate global acc
-
-Training Orchestrator  -> Web3Connector        : peer_get_last_round(i)
-Web3Connector          -> FedPeerNFT[i]        : call getLastParticipatedRound()
-FedPeerNFT[i]          -> Web3Connector        : lastRound
-alt lastRound < targetRound
-  Training Orchestrator-> Web3Connector        : mint_peer_round(targetRound, payload_i, i)
-  Web3Connector        -> FedPeerNFT[i]        : mint(roundNumber=targetRound, payload=JSON)
-  FedPeerNFT[i]        -> EVM/Chain            : persist payload; update lastParticipatedRound; mint NFT(tokenId=targetRound)
-  EVM/Chain            -> Web3Connector        : tx receipt
-else lastRound >= targetRound
-  Training Orchestrator: skip peer mint (idempotence)
-end
-
-Training Orchestrator  -> Web3Connector        : mint_aggregator_round(hash_avg, round_info_json)
-Web3Connector          -> FedAggregatorNFT     : mint(modelWeightsHash=hash_avg, roundInfo=JSON)
-FedAggregatorNFT       -> EVM/Chain            : increment currentRound; persist roundDetails/roundWeights; mint NFT(tokenId=currentRound)
-EVM/Chain              -> Web3Connector        : tx receipt
-
-Training Orchestrator  -> Web3Connector        : get_current_round()
-Web3Connector          -> FedAggregatorNFT     : call getCurrentRound()
-FedAggregatorNFT       -> Web3Connector        : currentRound
-Training Orchestrator  -> Web3Connector        : get_round_details(targetRound), get_round_weight/hash(targetRound)
-Web3Connector          -> FedAggregatorNFT     : call getters
-FedAggregatorNFT       -> Web3Connector        : JSON details, hash
-Web3Connector          -> Training Orchestrator: values for local equality checks
-```
-
-## Mermaid Diagram (Rendered)
-```mermaid
-sequenceDiagram
-    autonumber
-    participant Peer as Peer
-    participant O as Orchestrator
-    participant W as Web3Connector
-    participant PC as FedPeerNFT
-    participant AC as FedAggregatorNFT
-
-    Peer->>O: Train 1 epoch -> weights_i
-    O->>O: hash(weights_i), eval(acc_i)
-
-    O->>W: peer_get_last_round(i)
-    W->>PC: getLastParticipatedRound()
-    PC-->>W: lastRound
-    alt not minted this round
-        O->>W: mint_peer_round(targetRound, payload_i)
-        W->>PC: mint(targetRound, payload_i)
-        PC-->>W: tx receipt
-    else already minted
-        O-->>O: skip (idempotence)
-    end
-
-    O->>O: FedAvg(all weights) -> avg_weights, acc_global
-    O->>W: mint_aggregator_round(hash_avg, roundInfo)
-    W->>AC: mint(hash_avg, roundInfo)
-    AC-->>W: tx receipt
-
-    O->>W: get_round_details(targetRound)
-    W->>AC: getRoundDetails(targetRound)
-    AC-->>W: details JSON
-    W-->>O: verification OK
-
-```
+Naming
+- JSON keys use snake_case (e.g., `round_id`, `weight_hash`), while Solidity functions and events use camelCase (e.g., `getCurrentRound`, `modelWeightsHash`). This document preserves both conventions intentionally.
 
 
 ## Environment and Configuration

@@ -1,0 +1,15 @@
+.venv/
+__pycache__/
+.ipynb_checkpoints/
+*.log
+.anvil.pid
+logs/
+*.egg-info/
+.env
+.env.*
+*.env*
+src/abi/*.temp.json
+out/
+cache/
+lib/
+broadcast/

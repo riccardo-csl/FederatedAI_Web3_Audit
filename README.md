@@ -100,6 +100,14 @@ make status
 
 All Make targets are documented in `docs/target.md` (usage, variables, and examples).
 
+## Troubleshooting (Quick)
+- RPC unreachable: ensure Anvil is running and `RPC_URL`/`WEB3_HTTP_PROVIDER` match (`make anvil-start`, then `make status`).
+- Insufficient funds: top up EOA balances on Anvil (`make fund-accounts`) or use a testnet faucet.
+- JSON quoting in shell: wrap JSON in single quotes, e.g. `ROUND_INFO='{"round_id":1,...}'`.
+- ABI mismatch: regenerate with `make abi` after changing contracts.
+- Hash mismatch: confirm dtype/ordering. Use `tools/weights_hash.py` and ensure float32, C-order, deterministic layer ordering.
+- Foundry not in PATH: install Foundry or set `FOUNDRY` path; verify with `forge --version`.
+
 ## Verification Workflows
 This project makes it easy to verify that local weights correspond to the hashes recorded on‑chain.
 

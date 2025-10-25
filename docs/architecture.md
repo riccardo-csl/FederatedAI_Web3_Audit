@@ -77,6 +77,21 @@ Primary formats:
 
 Both are produced in compact form (no spaces after commas or colons) to ensure stable comparisons.
 
+### Determinism Details
+- Weight dtype and layout: use float32 and C-order (row-major). Hashing uses `flatten_weights(weights).tobytes()` with stable layer order.
+- Layer ordering: for Keras, `model.get_weights()` order is deterministic; keep the same architecture across peers.
+- NPZ/HDF5 inputs: when verifying against on-chain, ensure consistent key order (provide `KEYS_ORDER` if needed) and dtype.
+- JSON serialization: use compact separators (`,`, `:`) and stable key order to allow string-level equality checks.
+- Seeding: the orchestrator sets seeds for NumPy, TensorFlow, and Python RNG to improve repeatability in demos.
+
+### JSON Field Definitions
+- Peer payload (stored in `FedPeerNFT.roundDetails[round]`):
+  - Required fields: `peer_id` (int), `round` (int >= 1), `weight_hash` (hex string), `test_accuracy` (float [0,1]).
+  - Example (compact): `{"peer_id":1,"round":3,"weight_hash":"abcd...","test_accuracy":0.9123}`
+- Aggregator round info (stored in `FedAggregatorNFT.roundDetails[round]`):
+  - Required fields: `round_id` (int >= 1), `timestamp` (RFC3339Z), `duration_sec` (float), `participants` (int), `local_epochs` (int), `batch_size` (int), `avg_round_accuracy` (float), `lr` (float).
+  - Example (compact): `{"round_id":3,"timestamp":"2025-01-01T00:00:00Z","duration_sec":1.23,"participants":5,"local_epochs":1,"batch_size":64,"avg_round_accuracy":0.88,"lr":0.001}`
+
 ## Python Layer (Orchestration + Web3)
 The Python layer implements training, hashing, on‑chain interaction, and post‑write verification.
 
@@ -218,6 +233,12 @@ The Makefile can update `.env` after deployments and regenerates ABIs via the `a
 - Peer idempotence: `roundNumber > lastParticipatedRound` prevents duplicate or retrograde mints.
 - Determinism: hashing and compact JSON enable exact string equality between local and on‑chain values.
 - Privacy: no raw data or weights on‑chain; only hashes and non‑sensitive metadata.
+
+### Security Hardening (Public Networks)
+- Key management: never commit secrets; use hardware wallets or secure vaults for keys. Prefer multisig for aggregator governance.
+- Gas/risk: set appropriate `chainId`, gas price caps, and monitoring; handle retries/backoffs at the orchestrator level.
+- Contract upgrades: if governance moves, use `changeAggregator` or `transferOwnership` to keep state consistent.
+- NFT semantics: tokens are ERC‑721 and transferable; audit semantics rely on on-chain state (round metadata) rather than current token owner.
 
 ## Operational Considerations and Limitations
 - Gas costs scale with JSON size; keep payloads compact and stable.

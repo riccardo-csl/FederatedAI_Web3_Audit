@@ -133,3 +133,11 @@ Note: Many targets expect keys/addresses in `$(ENV_FILE)`.
 ## clean-artifacts
 - Purpose: Remove Foundry build artifacts and broadcast traces.
 - Usage: `make clean-artifacts`
+
+## Troubleshooting and Tips
+- JSON quoting: when passing JSON on the shell (e.g., `ROUND_INFO`), wrap the value in single quotes to avoid escaping issues.
+- RPC not reachable: ensure Anvil is running (`make anvil-start`) and `RPC_URL` matches your node; verify with `make status`.
+- Foundry missing: install Foundry or set `FOUNDRY` path; verify with `forge --version` and `cast --version`.
+- Insufficient funds: on Anvil use `make fund-accounts`; on testnet use faucets. Check balances with `status`.
+- ABI out of date: regenerate after contract changes with `make abi`.
+- Hash verification mismatches: ensure the same dtype (float32), layer ordering, and keys order for `.npz` (use `KEYS_ORDER`).

@@ -36,7 +36,11 @@ jobs:
 
       - name: Install Solidity dependencies
         run: |
-          forge install openzeppelin/openzeppelin-contracts@v5.4.0 foundry-rs/forge-std@v1.9.7
+          if [ ! -d lib/openzeppelin-contracts ] || [ ! -d lib/forge-std ]; then \
+            forge install openzeppelin/openzeppelin-contracts@v5.4.0 foundry-rs/forge-std@v1.9.7; \
+          else \
+            echo "Solidity libs already present in lib/, skipping forge install"; \
+          fi
 
       - name: Generate ABI
         run: make abi FORGE=forge

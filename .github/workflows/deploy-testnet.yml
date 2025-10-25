@@ -1,0 +1,62 @@
+name: Deploy (Testnet)
+
+on:
+  workflow_dispatch:
+    inputs:
+      model_hash:
+        description: "Initial model hash for aggregator"
+        required: true
+        default: "init-hash"
+
+permissions:
+  contents: read
+
+env:
+  ENV_FILE: .env
+
+jobs:
+  deploy:
+    name: Deploy aggregator and peers
+    runs-on: ubuntu-latest
+    environment: testnet
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: nightly
+
+      - name: Prepare .env for deployment
+        run: |
+          cat > .env << 'EOF'
+          WEB3_HTTP_PROVIDER=${{ secrets.WEB3_HTTP_PROVIDER }}
+          AGGREGATOR_PRIVATE_KEY=${{ secrets.AGGREGATOR_PRIVATE_KEY }}
+          CLIENT_PRIVATE_KEYS=${{ secrets.CLIENT_PRIVATE_KEYS }}
+          AGGREGATOR_CONTRACT_ADDRESS=
+          CLIENT_CONTRACT_ADDRESSES=
+          AGGREGATOR_ABI_PATH=src/abi/Aggregator_ABI.json
+          CLIENT_ABI_PATH=src/abi/Client_ABI.json
+          EOF
+
+      - name: Build contracts and ABI
+        run: |
+          make build
+          make abi
+
+      - name: Deploy Aggregator
+        env:
+          RPC_URL: ${{ secrets.WEB3_HTTP_PROVIDER }}
+        run: make deploy-agg MODEL_HASH="${{ inputs.model_hash }}"
+
+      - name: Deploy Peers
+        env:
+          RPC_URL: ${{ secrets.WEB3_HTTP_PROVIDER }}
+        run: make deploy-peers
+
+      - name: Status
+        env:
+          RPC_URL: ${{ secrets.WEB3_HTTP_PROVIDER }}
+        run: make status
+
